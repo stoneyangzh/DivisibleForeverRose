@@ -1,4 +1,3 @@
-MyRich
+ForeverRose
 ======
 
-夺宝骑兵
