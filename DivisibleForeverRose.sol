@@ -15,6 +15,7 @@ contract ERC721 {
     //function approve(address _to, uint256 _tokenId) external;
     function transfer(address _to, uint256 _tokenId) external;
     //function transferFrom(address _from, address _to, uint256 _tokenId) external;
+    function tokenMetadata(uint256 _tokenId) public constant returns (string infoUrl);
 
     // Events
     event Transfer(address from, address to, uint256 tokenId);
@@ -54,6 +55,9 @@ contract DivisibleForeverRose is ERC721 {
     // If Forever Rose has been created
 	mapping(uint => bool) foreverRoseCreated;
 
+    // The forever rose img url
+    mapping(uint => string) roseToUrl;
+
     string public name;  
     string public symbol;           
     uint8 public decimals = 1;                                 
@@ -69,6 +73,8 @@ contract DivisibleForeverRose is ERC721 {
         contractOwner = msg.sender;
         name = "ForeverRose";
         symbol = "ROSE";  
+
+        roseToUrl[foreverRoseId] = "http://g.cdn.pengpengla.com/oauthgame/html5/20180208/Forever%20rose%201.JPG";
 
         // Create Forever rose
         GiftToken memory newGift = GiftToken({
@@ -151,6 +157,12 @@ contract DivisibleForeverRose is ERC721 {
         return true;
     }
 
+    // Gets the img url of the Forever Rose
+    function tokenMetadata(uint256 _tokenId) public constant returns (string infoUrl) {
+        require(foreverRoseCreated[_tokenId] == true);
+        return roseToUrl[_tokenId];
+    }
+
     function getForeverRose() public view returns(uint256 _foreverRoseId) {
         return giftStorage[foreverRoseId].giftId;
     }
@@ -186,6 +198,10 @@ contract DivisibleForeverRose is ERC721 {
     // Withdraw Ether from this contract to Multi sigin wallet
     function withdrawEther() onlyOwner public returns(bool) {
         return contractOwner.send(this.balance);
+    }
+
+    function setRoseImgUrl(string _imgUrl) public onlyOwner {
+        roseToUrl[foreverRoseId] = _imgUrl;
     }
 
     // ------------------------------ Modifier -----------------------------------
