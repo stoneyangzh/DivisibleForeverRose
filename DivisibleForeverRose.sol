@@ -12,14 +12,14 @@ contract ERC721 {
     function totalSupply() public view returns (uint256 total);
     function balanceOf(address _owner) public view returns (uint256 balance);
     //function ownerOf(uint256 _tokenId) external view returns (address owner);
-    //function approve(address _to, uint256 _tokenId) external;
-    function transfer(address _to, uint256 _tokenId) external;
-    //function transferFrom(address _from, address _to, uint256 _tokenId) external;
+    function approve(address _to, uint256 _tokenId) external returns (bool success);
+    function transfer(address _to, uint256 _tokenId) external returns (bool success);
+    function transferFrom(address _from, address _to, uint256 _tokenId) external returns (bool success);
     function tokenMetadata(uint256 _tokenId) public constant returns (string infoUrl);
 
     // Events
     event Transfer(address from, address to, uint256 tokenId);
-    //event Approval(address owner, address approved, uint256 tokenId);
+    event Approval(address owner, address approved, uint256 tokenId);
 
 }
 
@@ -51,6 +51,9 @@ contract DivisibleForeverRose is ERC721 {
 
 	// How much owners have of a token
 	mapping(uint => mapping(address => uint)) tokenToOwnersHoldings;
+
+    // Owner of account approves the transfer of an amount to another account
+    mapping(address => mapping (address => uint256)) private allowed;
 
     // If Forever Rose has been created
 	mapping(uint => bool) foreverRoseCreated;
@@ -103,20 +106,17 @@ contract DivisibleForeverRose is ERC721 {
     }
 
     // We use parameter '_tokenId' as the divisibility
-    function transfer(address _to, uint256 _tokenId) external {
-
-        // Requiring this contract be tradable
-        require(tradable == true);
+    function transfer(address _to, uint256 _tokenId) 
+                    external isTradable
+                    isAmountEnough(_tokenId)
+                    returns (bool success)
+                    {
 
         require(_to != address(0));
         require(msg.sender != _to);
 
         // Take _tokenId as divisibility
         uint256 _divisibility = _tokenId;
-
-        // Requiring msg.sender has Holdings of Forever rose
-        require(tokenToOwnersHoldings[foreverRoseId][msg.sender] >= _divisibility);
-
     
         // Remove divisibilitys from old owner
         _removeShareFromLastOwner(msg.sender, foreverRoseId, _divisibility);
@@ -128,20 +128,69 @@ contract DivisibleForeverRose is ERC721 {
 
         // Trigger Ethereum Event
         Transfer(msg.sender, _to, foreverRoseId);
+        return true;
+    }
 
+
+     // Send _value amount of tokens from address _from to address _to
+    // The transferFrom method is used for a withdraw workflow, allowing contracts to send
+    // tokens on your behalf, for example to "deposit" to a contract address and/or to charge
+    // fees in sub-currencies; the command should fail unless the _from account has
+    // deliberately authorized the sender of the message via some mechanism; we propose
+    // these standardized APIs for approval:
+    function transferFrom(address _from, address _to, uint256 _amount )
+                            external isTradable returns (bool success) 
+                            {
+        if (allowed[_from][msg.sender] >= _amount && _amount > 0) {
+
+            // Remove divisibilitys from old owner
+            _removeShareFromLastOwner(_from, foreverRoseId, _amount);
+            _removeLastOwnerHoldingsFromToken(_from, foreverRoseId, _amount);
+
+            // Add divisibilitys to new owner
+            _addNewOwnerHoldingsToToken(_to, foreverRoseId, _amount);
+            _addShareToNewOwner(_to, foreverRoseId, _amount);
+
+            allowed[_from][msg.sender] -= _amount;
+            
+            Transfer(_from, _to, _amount);
+            return true;
+        } else {
+            return false;
+        }
+    }
+    
+    // Allow _spender to withdraw from your account, multiple times, up to the _value amount.
+    // If this function is called again it overwrites the current allowance with _value.
+    function approve(address _spender, uint256 _amount) 
+                    external
+                    isTradable
+                    isAmountEnough(_amount)
+                    returns (bool success)
+                    {
+        allowed[msg.sender][_spender] = _amount;
+        Approval(msg.sender, _spender, _amount);
+        return true;
+    }
+    
+    // get allowance
+    function allowance(address _owner, address _spender) 
+        public
+        constant 
+        returns (uint256 remaining) 
+        {
+        return allowed[_owner][_spender];
     }
 
     // Transfer gift to a new owner.
     function assignSharedOwnership(address _to, uint256 _divisibility)
-                               onlyOwner external returns (bool success) 
+                               onlyOwner isAmountEnough(_divisibility)
+                               external returns (bool success) 
                                {
 
         require(_to != address(0));
         require(msg.sender != _to);
         require(_to != address(this));
-        
-        // Requiring msg.sender has Holdings of Forever rose
-        require(tokenToOwnersHoldings[foreverRoseId][msg.sender] >= _divisibility);
 
         //Remove ownership from oldOwner(msg.sender)
         _removeLastOwnerHoldingsFromToken(msg.sender, foreverRoseId, _divisibility);
@@ -216,6 +265,16 @@ contract DivisibleForeverRose is ERC721 {
          require(msg.sender == contractOwner);
          _;
      }
+
+    modifier isTradable(){
+        require(tradable == true || msg.sender == contractOwner);
+        _;
+    }
+
+    modifier isAmountEnough(uint256 _divisibility){
+        require(tokenToOwnersHoldings[foreverRoseId][msg.sender] >= _divisibility);
+        _;
+    }
 
 }
 
