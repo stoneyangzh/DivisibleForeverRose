@@ -5,8 +5,8 @@ pragma solidity ^0.4.18;
 /*=============================ERC721 interface==================================== */
 /*============================================================================= */
 
-/// @title Interface for contracts conforming to ERC-721: Non-Fungible Tokens
-/// @author Yumin.yang
+/// @title ERC721 － ERC721 standards interface
+/// @author Yumin.yang - <smartcontract@asiainnovations.com>
 contract ERC721 {
     // Required methods
     function totalSupply() public view returns (uint256 total);
@@ -27,8 +27,8 @@ contract ERC721 {
 /*=============================Forever Rose==================================== */
 /*============================================================================= */
 
-/// @title Interface for contracts conforming to ERC-721: Non-Fungible Tokens
-/// @author Yumin.yang
+/// @title DivisibleForeverRose - One contract one rose
+/// @author Yumin.yang - <smartcontract@asiainnovations.com>
 contract DivisibleForeverRose is ERC721 {
   
     //This contract's owner
