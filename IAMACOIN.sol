@@ -86,7 +86,7 @@ contract IAMACOIN is StandardToken {
     string public symbol;                 
     string public version = 'H1.0';       
 
-    // IAMICOIN
+    // Abas's added some comments "IAMICOIN"
     function IAMACOIN(
         ) {
         totalSupply =  10000000000000000000000000;                        
